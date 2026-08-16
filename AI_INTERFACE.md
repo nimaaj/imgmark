@@ -188,6 +188,27 @@ All operations default to `color: "red"`. Named colors are `red`, `green`,
 | `text` | `x`, `y`, `text` | `color`, `size`, `background`, `padding` |
 | `focus` | `x1`, `y1`, `x2`, `y2` | `opacity` (default `0.65`) |
 
+## Text labels and fonts
+
+`size` is in points against a scalable font, so it must grow with the image: on
+a 1800 px-wide screenshot a label wants `size` 40 or so, not 20.
+
+The font is resolved once per process, in this order:
+
+1. `$IMGMARK_FONT`, if set to a readable `.ttf`/`.otf`/`.ttc`.
+2. A built-in list of common system fonts (DejaVu and Liberation on Linux, Arial
+   and Helvetica on macOS, Arial and Segoe UI on Windows). The bare name
+   `DejaVuSans.ttf` is tried first, which also picks up a font file sitting in
+   the working directory.
+3. Pillow's bundled default, scaled to `size` (Pillow 10.1+).
+
+Steps 2 and 3 both emit a warning in the result so a fallback is never silent:
+
+| Warning `type` | Meaning |
+| --- | --- |
+| `font_fallback` | No system font found; Pillow's bundled face was scaled to `size`. Output is fine, just not the typeface you may have wanted. |
+| `font_size_ignored` | No system font **and** Pillow is too old to scale its default, so `size` was ignored and the label rendered at roughly 11 px. Set `$IMGMARK_FONT` or upgrade Pillow. |
+
 ## One-operation CLI shortcuts
 
 For a single operation, omit `annotate` and select one flag after the input

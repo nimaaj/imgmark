@@ -57,3 +57,47 @@ def test_crop_cli_and_api(tmp_path, capsys):
     cli_output = tmp_path / "crop-cli.png"
     assert main(["crop", str(source), "--x1", "0", "--y1", "0", "--x2", "20", "--y2", "10", "--output", str(cli_output), "--json"]) == 0
     assert json.loads(capsys.readouterr().out)["height"] == 10
+
+def test_text_size_actually_scales(tmp_path):
+    """Regression: `size` was silently ignored whenever DejaVuSans.ttf was
+    missing (any stock macOS/Windows box), because Pillow's load_default()
+    bitmap font renders at a fixed ~11px."""
+    from imgmark.primitives import _font
+    small, _ = _font(12)
+    large, _ = _font(44)
+    assert large.getbbox("Ag")[3] > small.getbbox("Ag")[3] * 2
+
+def test_font_falls_back_with_a_warning_not_silence(tmp_path, monkeypatch):
+    import imgmark.primitives as primitives
+    monkeypatch.delenv("IMGMARK_FONT", raising=False)
+    monkeypatch.setattr(primitives, "_FONT_CANDIDATES", ("no-such-font-anywhere.ttf",))
+    primitives.reset_font_cache()
+    try:
+        assert primitives.font_path() is None
+        source, output = tmp_path / "in.png", tmp_path / "out.png"; make_image(source)
+        annotator = ImageAnnotator(source)
+        annotator.text(5, 5, "hello", color="#000000", size=40).save(output)
+        assert [w["type"] for w in annotator.warnings] == ["font_fallback"]
+        assert annotator.warnings[0]["operation"] == 1
+    finally:
+        primitives.reset_font_cache()
+
+def test_imgmark_font_env_var_overrides(tmp_path, monkeypatch):
+    import imgmark.primitives as primitives
+    chosen = primitives.font_path()
+    if chosen is None: return  # no scalable font on this box; nothing to override with
+    monkeypatch.setenv("IMGMARK_FONT", chosen)
+    primitives.reset_font_cache()
+    try:
+        assert primitives.font_path() == chosen
+    finally:
+        primitives.reset_font_cache()
+
+def test_bogus_font_env_var_falls_through_instead_of_crashing(monkeypatch):
+    import imgmark.primitives as primitives
+    monkeypatch.setenv("IMGMARK_FONT", "/definitely/not/here.ttf")
+    primitives.reset_font_cache()
+    try:
+        assert primitives.font_path() != "/definitely/not/here.ttf"
+    finally:
+        primitives.reset_font_cache()

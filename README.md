@@ -31,6 +31,13 @@ JSON examples. Coordinates are pixels with `(0, 0)` at the top-left.
 pattern. Supply `x1`, `y1`, `x2`, `y2`, and optionally `opacity` (default
 `0.65`); the rectangle remains at its original brightness.
 
+For `text`, `size` is in points against a scalable font, so scale it with the
+image: a label on an 1800 px-wide screenshot wants `size` around 40. imgmark
+looks for a usable system font (DejaVu, Liberation, Arial, Helvetica, Segoe UI),
+and you can force one with `IMGMARK_FONT=/path/to/Font.ttf`. If it has to fall
+back to Pillow's bundled face it says so in `warnings` rather than failing
+quietly.
+
 For an exact AI-agent CLI/API contract and copyable JSON examples, see
 [AI_INTERFACE.md](AI_INTERFACE.md).
 

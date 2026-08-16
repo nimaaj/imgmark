@@ -25,8 +25,13 @@ class ImageAnnotator:
     def size(self): return self.image.size
     def apply(self, operation: dict[str, Any]) -> "ImageAnnotator":
         op = validate_operation(operation, self.operations_applied + 1)
-        self._warn_bounds(op, self.operations_applied + 1)
-        DRAWERS[op["type"]](self.image, op); self.operations_applied += 1
+        index = self.operations_applied + 1
+        self._warn_bounds(op, index)
+        # A drawer may return warning dicts (e.g. text falling back to a font
+        # that cannot honour `size`); None means nothing to report.
+        notes = DRAWERS[op["type"]](self.image, op)
+        for note in notes or []: self.warnings.append({"operation": index, **note})
+        self.operations_applied += 1
         return self
     def apply_all(self, operations: list[dict[str, Any]]) -> "ImageAnnotator":
         for op in operations: self.apply(op)
